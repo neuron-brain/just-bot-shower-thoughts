@@ -5,10 +5,7 @@ import random
 
 # Authenticate via OAuth
 client = pytumblr.TumblrRestClient(
-    'wsuQqjT2IdbgWWwovk5WIDc9Se2gJB9eHazEP8Gal4FrexA0gz',
-    'Kj7Z29EkUR5IrUc0Ue4D31Zx1dfJtjzCJKP4ynzxJ3uBCZp5fa',
-    'vQhmBAH3TuNqSCbOvf4LJ8Yl0LJmnGlX6OvXYv53uZgEiW9p2V',
-    'iUlVBsGZ4EIWCrilIio26sWUyU4QHIYwobB3LiYsH6WE5kb1kV'
+    #insert keys here
 )
 
 # Make the request
