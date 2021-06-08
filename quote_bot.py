@@ -1,7 +1,10 @@
 # bot that makes showerthoughts
 import pytumblr
 import random
-
+import word_lists
+from word_lists import lists_noun
+from word_lists import lists_verb
+from word_lists import lists_adj
 
 # Authenticate via OAuth
 client = pytumblr.TumblrRestClient(
