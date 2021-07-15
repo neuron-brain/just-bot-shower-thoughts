@@ -2,6 +2,7 @@
 import pytumblr
 import random
 import word_lists
+from grammar_checks import *
 from word_lists import lists_noun
 from word_lists import lists_verb
 from word_lists import lists_adj
