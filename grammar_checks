@@ -16,7 +16,7 @@ def plural(noun):
 
 def present_tense(verb):
     if verb[-1]=='e':
-        return f'{verb[0,-2]}ing'
+        return f'{verb[0:-1]}ing'
     else:
         return f'{verb}ing'
 
