@@ -9,4 +9,4 @@ you'll need to add your own tokens if you want to use this as a tumblr bot (with
 tumblr's api website has some code you can copy and paste
 
 # stuff to work on
-I'm currently looking at trying to make the posts more gramatically correct
+Adding some more items to the trigger warning system
