@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import aiohttp
 
@@ -77,7 +77,7 @@ class association:
         return f"association({self.__str__()})"
 
 
-def _parseResponse(response: str, data: Dict[str, List[str]]):
+def _parseResponse(response: str, assocData: Dict[str, List[str]], posData: Dict[str, List[str]]):
     passedCSVHeader = False
     for _line in response.splitlines():
         if not _line.startswith("<") and _line.strip() != "":
@@ -87,27 +87,42 @@ def _parseResponse(response: str, data: Dict[str, List[str]]):
             # _line = _line.replace("¥", "0")
             linedata = _line.split(",")
             linedata = [i.strip() for i in linedata]
-            if linedata[0] in data:
-                data[linedata[0]].append(association(linedata))
+            assoc = association(linedata)
+            if assoc.QPS not in posData:
+                posData[assoc.QPS] = []
+
+            if assoc.cue in assocData:
+                assocData[assoc.cue].append(assoc)
             else:
-                data[linedata[0]] = [association(linedata)]
+                assocData[assoc.cue] = [assoc]
+                # First time we've encountered this cue, so add it to the POS data as well
+                posData[assoc.QPS].append(assoc.cue)
 
 
-async def _loadURL(url: str, data: Dict[str, List[str]], session: aiohttp.ClientSession):
+async def _loadURL(url: str, assocData: Dict[str, List[str]], posData: Dict[str, List[str]], session: aiohttp.ClientSession):
     print(f"{url}: Downloading")
     response = await session.get(url)
     print(f"{url}: Parsing")
-    _parseResponse(await response.text(), data)
+    _parseResponse(await response.text(), assocData, posData)
     print(f"{url}: Done")
 
 
-async def load() -> Dict[str, List[association]]:
-    _data: Dict[str, List[association]] = {}
-    session = aiohttp.ClientSession()
-    await asyncio.gather(*[_loadURL(url, _data, session) for url in sources])
-    return _data
+async def load() -> Tuple[Dict[str, List[association]], Dict[str, List[str]]]:
+    """
+    Does all the loading of data.
+    Returns two dictionaries: (associations, pos)
 
-data = asyncio.run(load())
+    Associations contains the associations for every word.
+    POS contains a dict of parts of speech and every cue found that matches.
+    """
+    _assocs: Dict[str, List[association]] = {}
+    _pos: Dict[str, List[str]] = {}
+    session = aiohttp.ClientSession()
+    await asyncio.gather(*[_loadURL(url, _assocs, _pos, session) for url in sources])
+    return (_assocs, _pos)
+
+
+assocData, posData = asyncio.run(load())
 print("Finished loading word associations")
 
 
@@ -116,8 +131,10 @@ def getAssociations(cue: str, pos: Optional[str] = None) -> List[association]:
     Gets the associations for a given part of speech (see above).
     If pos is None, all parts of speech will be accepted.
     """
+    if cue.upper() not in assocData:
+        return []
     associations: List[association] = []
-    for assoc in data[cue.upper()]:
+    for assoc in assocData[cue.upper()]:
         if pos is None or assoc.TPS == pos.upper():
             associations.append(assoc)
     return associations
@@ -143,7 +160,7 @@ class cumulativeAssociation:
 def getCumulativeAssociations(cues: List[str], pos: Optional[str] = None) -> List[cumulativeAssociation]:
     associations: Dict[str, cumulativeAssociation] = {}
     for cue in cues:
-        cAssocs = getAssociations(cue, pos)
+        cAssocs = getAssociations(cue.upper(), pos)
         for cAssoc in cAssocs:
             if cAssoc.target in associations:
                 associations[cAssoc.target].cues[cAssoc.cue] = cAssoc.FSG
@@ -153,9 +170,9 @@ def getCumulativeAssociations(cues: List[str], pos: Optional[str] = None) -> Lis
     return list(associations.values())
 
 
-def randWeightedAssociation(cue: Union[str, List[str]], pos: Optional[str] = None) -> association:
+def randWeightedAssociation(cue: Union[str, List[str]], pos: Optional[str] = None) -> Union[association, cumulativeAssociation]:
     if isinstance(cue, str):
-        associations = getAssociations(cue, pos)
+        associations = getAssociations(cue.upper(), pos)
     else:
         associations = getCumulativeAssociations(cue, pos)
     if len(associations) == 0:
@@ -163,9 +180,9 @@ def randWeightedAssociation(cue: Union[str, List[str]], pos: Optional[str] = Non
     return random.choices(associations, [assoc.FSG for assoc in associations])[0]
 
 
-def randUnweightedAssociation(cue: Union[str, List[str]], pos: Optional[str] = None) -> association:
+def randUnweightedAssociation(cue: Union[str, List[str]], pos: Optional[str] = None) -> Union[association, cumulativeAssociation]:
     if isinstance(cue, str):
-        associations = getAssociations(cue, pos)
+        associations = getAssociations(cue.upper(), pos)
     else:
         associations = getCumulativeAssociations(cue, pos)
     if len(associations) == 0:
@@ -177,10 +194,10 @@ def randomWord(pos: Optional[str] = None) -> str:
     """
     Selects a random word of a given part of speech (see above).
     If pos is None, all parts of speech will be accepted.
-    This may be slow if we are unlucky, since it basically selects random words and checks their part of speech until it finds one. Will time out after 100 words.
     """
-    for i in range(100):  # We have to loop to ensure the word is the correct part of speech.
-        word: str = random.choice(list(data.keys()))
-        if len(data[word]) != 0 and (pos is None or pos.upper() == data[word][0].QPS):
-            return word
-    return f"WORD_NOT_FOUND_POS_({pos})"
+    if pos is None:
+        return random.choice(random.choices(posData, [len(s) for s in posData.values()])[0])
+    elif pos not in posData or len(posData[pos]) == 0:
+        return None
+    else:
+        return random.choice(posData[pos])
