@@ -40,7 +40,7 @@ def noun(prev: List[str]):
     if r < 0.9 and len(prev) > 0:
         assoc = association.randUnweightedAssociation(prev, "N")
         if assoc is not None:
-            #print(assoc)
+            # print(assoc)
             word = assoc.target.lower()
             prev.append(word)
             return word
@@ -68,7 +68,7 @@ def verb(prev: List[str]):
     if r < 0.9 and len(prev) > 0:
         assoc = association.randUnweightedAssociation(prev, "V")
         if assoc is not None:
-            #print(assoc)
+            # print(assoc)
             word = assoc.target.lower()
             prev.append(word)
             return word
@@ -79,9 +79,19 @@ def verb(prev: List[str]):
     return word
 
 
-@fcode("vp")
+@fcode("vr")
 def present_verb(prev: List[str]):
-    return present_tense(verb(prev))
+    return present_participle(verb(prev))
+
+
+@fcode("va")
+def past_verb(prev: List[str]):
+    return past_tense(verb(prev))
+
+
+@fcode("vt")
+def past_participle_verb(prev: List[str]):
+    return past_participle(verb(prev))
 
 
 @fcode("aj")
@@ -91,13 +101,31 @@ def adjective(prev: List[str]):
     if r < 0.9 and len(prev) > 0:
         assoc = association.randUnweightedAssociation(prev, "AJ")
         if assoc is not None:
-            #print(assoc)
+            # print(assoc)
             word = assoc.target.lower()
             prev.append(word)
             return word
     # If chance not met or no association found, pick random.
     word = association.randomWord("AJ").lower()
     #print(f"Random adjective: {word}")
+    prev.append(word)
+    return word
+
+
+@fcode("ad")
+def adverb(prev: List[str]):
+    r = random.random()
+    # Chance of association
+    if r < 0.9 and len(prev) > 0:
+        assoc = association.randUnweightedAssociation(prev, "AD")
+        if assoc is not None:
+            # print(assoc)
+            word = assoc.target.lower()
+            prev.append(word)
+            return word
+    # If chance not met or no association found, pick random.
+    word = association.randomWord("AD").lower()
+    #print(f"Random adverb: {word}")
     prev.append(word)
     return word
 
@@ -116,17 +144,20 @@ def buildStructure(formatted: str) -> structure:
 
 
 sentence_structure: List[structure] = [
-    buildStructure("%nn is just %ni"),
-    buildStructure("%ni is like %ni but if it was %aj"),
-    buildStructure("if %nn had %ni then more %nn would %vb it"),
-    buildStructure("life is a %vb %nn"),
-    buildStructure("you know when you're %vp your %nn, you're %vp your %nn"),
+    buildStructure("%nn is just %ni."),
+    buildStructure("%ni is like %ni but if it was %aj."),
+    buildStructure("if %nn had %ni then more %nn would %vb it."),
+    buildStructure("life is a %vb %nn."),
+    buildStructure("you know when you're %vr your %nn, you're %vr your %nn."),
     buildStructure("why do we have %aj %nn if we have %nn?"),
     buildStructure(
-        "if you become %ni then you are legally allowed to %vb %np"),
-    buildStructure("%nn has big %nn energy")
+        "if you become %ni then you are legally allowed to %vb %np."),
+    buildStructure("%nn has big %nn energy."),
+    buildStructure("%nn has normalized %nn and we didn't even notice."),
+    buildStructure("from %ni's perspective, %np are just %np."),
+    buildStructure("%np are just %np for %np.")
 ]
 
-#while True:
+# while True:
 #    input()
 #    print(random.choice(sentence_structure).generate())
